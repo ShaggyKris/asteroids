@@ -30,14 +30,14 @@
 
 #define drawCircle() glCallList(circle)
 
-#define SHIP_COORDS(ship)                                                    \
-    struct Coords ship_coords[] =                                          \
-    {                                                                        \
-        {ship->pos.x, ship->pos.y + SHIP_HEIGHT},              \
-        {ship->pos.x - SHIP_WIDTH, ship->pos.y - SHIP_HEIGHT}, \
-        {ship->pos.x,ship->pos.y - SHIP_HEIGHT/2}, \
-        {ship->pos.x + SHIP_WIDTH, ship->pos.y - SHIP_HEIGHT}  \
-    }; \
+/*#define SHIP_COORDS(ship)                                                    \*/
+/*    struct Coords ship_coords[] =                                          \*/
+/*    {                                                                        \*/
+/*        {ship->pos.x, ship->pos.y + SHIP_HEIGHT},              \*/
+/*        {ship->pos.x - SHIP_WIDTH, ship->pos.y - SHIP_HEIGHT}, \*/
+/*        {ship->pos.x,ship->pos.y - SHIP_HEIGHT/2}, \*/
+/*        {ship->pos.x + SHIP_WIDTH, ship->pos.y - SHIP_HEIGHT}  \*/
+/*    }; \*/
 
 #define SHIP_HEIGHT 3
 #define SHIP_WIDTH 2
@@ -111,7 +111,12 @@ static double	xMax, yMax;
 static Ship	ship;
 static Photon	photons[MAX_PHOTONS];
 static Asteroid	asteroids[MAX_ASTEROIDS];
-
+static Coords ship_coords[] = {
+			{0, SHIP_HEIGHT},              
+		    {-SHIP_WIDTH, -SHIP_HEIGHT},
+		    {0,-SHIP_HEIGHT/2},
+		    {SHIP_WIDTH,-SHIP_HEIGHT}
+     	};
 /* -- main ------------------------------------------------------------------ */
 
 int
@@ -293,8 +298,8 @@ init()
      * ship's coordinates and velocity, etc.
      */
     
-    ship.pos.x = 25;
-	ship.pos.y = 25;
+    ship.pos.x = 50;
+	ship.pos.y = 50;
 	//printf("\nInit x: %f",ship.x);
 	//printf("\nInit y: %f",ship.y);
       
@@ -338,24 +343,20 @@ void
 drawShip(Ship *s)
 {
 	
-	SHIP_COORDS(s);
+	
     
-    glLoadIdentity();
+    //glLoadIdentity();
     //COLOR_GL_LINE;
-    myTranslate2D(s->pos.x,s->pos.y);
+    //myTranslate2D(s->pos.x,s->pos.y);
     myRotate2D(s->phi);
-    
+    //SHIP_COORDS(s);
     glPushMatrix();
     
     glBegin(GL_LINE_LOOP);
     
 		for(int i=0;i<4;i++){
 			//glVertex2f(2*sin(2*i*M_PI/3), 2*cos(2*i*M_PI/3));
-			glVertex2f(ship_coords[i].x, ship_coords[i].y);
-			
-			
-			
-			
+			glVertex2f(ship_coords[i].x, ship_coords[i].y);			
 		}    
     printf("\nVertex: (%f,%f)\tShip origin: (%f,%f)", ship_coords[0].x,ship_coords[0].y,ship.pos.x,ship.pos.y);
 	//printf("\nVertex Y: %f", ship_coords[0].y);
