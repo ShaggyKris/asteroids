@@ -351,14 +351,10 @@ drawShip(Ship *s)
     
 		for(int i=0;i<4;i++){
 			//glVertex2f(2*sin(2*i*M_PI/3), 2*cos(2*i*M_PI/3));
-			glVertex2f(ship_coords[i].x, ship_coords[i].y);
-			
-			
-			
-			
+			glVertex2f(ship_coords[i].x, ship_coords[i].y);			
 		}    
-    printf("\nVertex X: %f", ship_coords[0].x);
-	printf("\nVertex Y: %f", ship_coords[0].y);
+    printf("\nVertex: (%f,%f)\tShip origin: (%f,%f)", ship_coords[0].x,ship_coords[0].y,ship.pos.x,ship.pos.y);
+	//printf("\nVertex Y: %f", ship_coords[0].y);
 	fflush(stdout);
     glEnd();
     //glLineWidth(2);
