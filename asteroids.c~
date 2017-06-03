@@ -30,20 +30,11 @@
 
 #define drawCircle() glCallList(circle)
 
-/*#define SHIP_COORDS(ship)                                                    \*/
-/*    struct Coords ship_coords[] =                                          \*/
-/*    {                                                                        \*/
-/*        {ship->pos.x, ship->pos.y + SHIP_HEIGHT},              \*/
-/*        {ship->pos.x - SHIP_WIDTH, ship->pos.y - SHIP_HEIGHT}, \*/
-/*        {ship->pos.x,ship->pos.y - SHIP_HEIGHT/2}, \*/
-/*        {ship->pos.x + SHIP_WIDTH, ship->pos.y - SHIP_HEIGHT}  \*/
-/*    }; \*/
-
 #define SHIP_HEIGHT 3
 #define SHIP_WIDTH 2
 #define SHIP_MAX_SPEED 3
 #define SHIP_MAX_ROTATION 0.3
-#define SHIP_ACCELERATION 0.2
+#define SHIP_ACCELERATION 0.1
 
 /* -- display list for drawing a circle ------------------------------------- */
 
@@ -102,7 +93,7 @@ static void	drawPhoton(Photon *p);
 static void	drawAsteroid(Asteroid *a);
 
 static double	myRandom(double min, double max);
-
+static void screenWrap(Coords* pos);
 
 /* -- global variables ------------------------------------------------------ */
 
@@ -111,12 +102,15 @@ static double	xMax, yMax;
 static Ship	ship;
 static Photon	photons[MAX_PHOTONS];
 static Asteroid	asteroids[MAX_ASTEROIDS];
+
+/*Vector to draw ship*/
 static Coords ship_coords[] = {
 			{0, SHIP_HEIGHT},              
 		    {-SHIP_WIDTH, -SHIP_HEIGHT},
 		    {0,-SHIP_HEIGHT/2},
 		    {SHIP_WIDTH,-SHIP_HEIGHT}
      	};
+
 /* -- main ------------------------------------------------------------------ */
 
 int
@@ -203,6 +197,7 @@ myTimer(int value)
 		ship.pos.x += ship.dx;
 		ship.pos.y += ship.dy;
 	}
+	screenWrap(&ship.pos);
     /* advance photon laser shots, eliminating those that have gone past
       the window boundaries */
 
@@ -341,15 +336,10 @@ initAsteroid(
 
 void
 drawShip(Ship *s)
-{
-	
-	
-    
+{    
     //glLoadIdentity();
-    //COLOR_GL_LINE;
-    //myTranslate2D(s->pos.x,s->pos.y);
+    myTranslate2D(s->pos.x,s->pos.y);
     myRotate2D(s->phi);
-    //SHIP_COORDS(s);
     glPushMatrix();
     
     glBegin(GL_LINE_LOOP);
@@ -369,6 +359,7 @@ drawShip(Ship *s)
 void
 drawPhoton(Photon *p)
 {
+	
 }
 
 void
@@ -376,6 +367,20 @@ drawAsteroid(Asteroid *a)
 {
 }
 
+void screenWrap(Coords* pos){
+	if(pos->x < xMax-xMax) {
+    	pos->x += xMax;
+	} 
+	else if(pos->x > xMax) {
+		pos->x += -xMax;
+	}
+
+	if(pos->y < yMax-yMax) {
+		pos->y += yMax;
+	} else if (pos->y > yMax){
+		pos->y += -yMax;
+	}
+}
 
 /* -- helper function ------------------------------------------------------- */
 
