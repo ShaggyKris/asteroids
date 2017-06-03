@@ -72,8 +72,8 @@ typedef struct {
 
 typedef struct {
 	int	active, nVertices;
-	double	x, y, phi, dx, dy, dphi;
-	Coords	coords[MAX_VERTICES];
+	double	phi, dx, dy, dphi;
+	Coords	coords[MAX_VERTICES],pos;
 } Asteroid;
 
 
@@ -102,7 +102,7 @@ static double	xMax, yMax;
 static Ship	ship;
 static Photon	photons[MAX_PHOTONS];
 static Asteroid	asteroids[MAX_ASTEROIDS];
-
+static int activeAsteroids = 0, activePhotons = 0;
 /*Vector to draw ship*/
 static Coords ship_coords[] = {
 			{0, SHIP_HEIGHT},              
@@ -168,15 +168,8 @@ myDisplay()
     
     glutSwapBuffers();
 }
-
-void
-myTimer(int value)
-{
-    /*
-     *	timer callback function
-     */
-
-    /* advance the ship */
+void shipMovement(){
+	/* advance the ship */
 	
 	double speed, da;
 	// Input and set rotation.
@@ -198,6 +191,53 @@ myTimer(int value)
 		ship.pos.y += ship.dy;
 	}
 	screenWrap(&ship.pos);
+}
+
+void asteroidMovement(Asteroid* a){
+	a->pos.x += a->dx;
+	a->pos.y += a->dy;
+	a->phi += a->dphi;
+	screenWrap(&a->pos);
+}
+
+void photonMovement(Photon* p){
+
+}
+double randfrom(double min, double max) 
+{
+    double range = (max - min); 
+    double div = RAND_MAX / range;
+    return min + (rand() / div);
+}
+
+void
+myTimer(int value)
+{
+    if(activeAsteroids < MAX_ASTEROIDS){
+    	for(int i =0; i < MAX_ASTEROIDS; i++ && activeAsteroids++){
+    		initAsteroid(&asteroids[i], randfrom(0,xMax), randfrom(0,yMax), randfrom(2,5));
+    	}
+    	
+    	//activeAsteroids++;
+    }
+    /*
+     *	timer callback function
+     */
+	shipMovement();
+    
+    for(int i=0; i < MAX_ASTEROIDS && activeAsteroids > 0; i++){
+    	if(asteroids[i].active){
+    		asteroidMovement(&asteroids[i]);
+    	}
+    }
+    
+    for(int i=0; i < MAX_PHOTONS && activePhotons > 0; i++){
+    	if(photons[i].active){
+    		photonMovement(&photons[i]);
+    	}
+    }
+	
+	
     /* advance photon laser shots, eliminating those that have gone past
       the window boundaries */
 
@@ -315,8 +355,8 @@ initAsteroid(
     double	theta, r;
     int		i;
         
-    a->x = x;
-    a->y = y;
+    a->pos.x = x;
+    a->pos.y = y;
     a->phi = 0.0;
     a->dx = myRandom(-0.8, 0.8);
     a->dy = myRandom(-0.8, 0.8);
@@ -348,11 +388,11 @@ drawShip(Ship *s)
 			//glVertex2f(2*sin(2*i*M_PI/3), 2*cos(2*i*M_PI/3));
 			glVertex2f(ship_coords[i].x, ship_coords[i].y);			
 		}    
-    printf("\nVertex: (%f,%f)\tShip origin: (%f,%f)", ship_coords[0].x,ship_coords[0].y,ship.pos.x,ship.pos.y);
+    //printf("\nVertex: (%f,%f)\tShip origin: (%f,%f)", ship_coords[0].x,ship_coords[0].y,ship.pos.x,ship.pos.y);
 	//printf("\nVertex Y: %f", ship_coords[0].y);
-	fflush(stdout);
+	//fflush(stdout);
     glEnd();
-    //glLineWidth(2);
+    
     glPopMatrix();
 }
 
@@ -363,8 +403,22 @@ drawPhoton(Photon *p)
 }
 
 void
-drawAsteroid(Asteroid *a)
-{
+drawAsteroid(Asteroid *a){
+	
+	//a->active = 1;
+	myTranslate2D(a->pos.x,a->pos.y);
+	myRotate2D(a->phi);
+	
+	glPushMatrix();
+	
+	glBegin(GL_LINE_LOOP);
+		for(int i=0;i < a->nVertices;i++){
+			glVertex2f(a->coords[i].x,a->coords[i].y);
+		}	
+	glEnd();
+	
+	glPopMatrix();
+		
 }
 
 void screenWrap(Coords* pos){
