@@ -215,7 +215,7 @@ myTimer(int value)
 {
     if(activeAsteroids < MAX_ASTEROIDS){
     	for(int i =0; i < MAX_ASTEROIDS; i++ && activeAsteroids++){
-    		initAsteroid(&asteroids[i], randfrom(0,xMax), randfrom(0,yMax), randfrom(2,5));
+    		initAsteroid(&asteroids[i], (rand()%2)*xMax, myRandom(0,yMax), myRandom(2,5));
     	}
     	
     	//activeAsteroids++;
@@ -226,13 +226,13 @@ myTimer(int value)
 	shipMovement();
     
     for(int i=0; i < MAX_ASTEROIDS && activeAsteroids > 0; i++){
-    	if(&asteroids[i].active){
+    	if(asteroids[i].active){
     		asteroidMovement(&asteroids[i]);
     	}
     }
     
     for(int i=0; i < MAX_PHOTONS && activePhotons > 0; i++){
-    	if(&photons[i].active){
+    	if(photons[i].active){
     		photonMovement(&photons[i]);
     	}
     }

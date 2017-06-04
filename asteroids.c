@@ -215,7 +215,7 @@ myTimer(int value)
 {
     if(activeAsteroids < MAX_ASTEROIDS){
     	for(int i =0; i < MAX_ASTEROIDS; i++ && activeAsteroids++){
-    		initAsteroid(&asteroids[i], randfrom(0,xMax), randfrom(0,yMax), randfrom(2,5));
+    		initAsteroid(&asteroids[i], (rand()%2)*xMax, myRandom(0,yMax), myRandom(2,5));
     	}
     	
     	//activeAsteroids++;
