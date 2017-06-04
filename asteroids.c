@@ -34,7 +34,7 @@
 #define SHIP_WIDTH 2
 #define SHIP_MAX_SPEED 3
 #define SHIP_MAX_ROTATION 0.3
-#define SHIP_ACCELERATION 0.1
+#define SHIP_ACCELERATION 0.05
 
 /* -- display list for drawing a circle ------------------------------------- */
 
@@ -67,7 +67,8 @@ typedef struct {
 
 typedef struct {
 	int	active;
-	double	x, y, dx, dy;
+	Coords pos;
+	double dx, dy;
 } Photon;
 
 typedef struct {
@@ -93,7 +94,7 @@ static void	drawPhoton(Photon *p);
 static void	drawAsteroid(Asteroid *a);
 
 static double	myRandom(double min, double max);
-static void screenWrap(Coords* pos);
+static int screenWrap(Coords* pos, int border);
 
 /* -- global variables ------------------------------------------------------ */
 
@@ -158,50 +159,82 @@ myDisplay()
 
     drawShip(&ship);
 
-    for (i=0; i<MAX_PHOTONS; i++)
-    	if (photons[i].active)
+    for (i=0; i<MAX_PHOTONS; i++){
+    	if (photons[i].active){
             drawPhoton(&photons[i]);
+    		
+    	}
+    }
+    
+    
 
-    for (i=0; i<MAX_ASTEROIDS; i++)
+    for (i=0; i<MAX_ASTEROIDS; i++){
     	if (asteroids[i].active)
             drawAsteroid(&asteroids[i]);
+    }
     
     glutSwapBuffers();
 }
 void shipMovement(){
 	/* advance the ship */
 	
-	double speed, da;
+	double velocity, da;
 	// Input and set rotation.
 	ship.phi += (left*SHIP_MAX_ROTATION) - (right*SHIP_MAX_ROTATION);
 	da = (up * SHIP_ACCELERATION) - (down*SHIP_ACCELERATION);
 	// Update dx and dy
 	ship.dx += da * -sin(ship.phi);
 	ship.dy += da * cos(ship.phi);
-	speed = sqrt(ship.dx*ship.dx + ship.dy*ship.dy);
+	velocity = sqrt(ship.dx*ship.dx + ship.dy*ship.dy);
 	
-	if( speed > SHIP_MAX_SPEED)
+	
+	if( velocity > SHIP_MAX_SPEED)
 	{
-		ship.dx = (ship.dx / speed) * SHIP_MAX_SPEED;
-		ship.dy = (ship.dy / speed) * SHIP_MAX_SPEED;
+		ship.dx = (ship.dx / velocity) / SHIP_MAX_SPEED;
+		ship.dy = (ship.dy / velocity) / SHIP_MAX_SPEED;
 	}
 	else
 	{
 		ship.pos.x += ship.dx;
 		ship.pos.y += ship.dy;
 	}
-	screenWrap(&ship.pos);
+	screenWrap(&ship.pos,SHIP_HEIGHT);
 }
 
 void asteroidMovement(Asteroid* a){
 	a->pos.x += a->dx;
 	a->pos.y += a->dy;
 	a->phi += a->dphi;
-	screenWrap(&a->pos);
+	screenWrap(&a->pos,2);
 }
 
 void photonMovement(Photon* p){
-
+	//printf("\nBefore if, Photon Coords: %f, %f",p->pos.x,p->pos.y);
+	//fflush(stdout);
+	
+	//Set initial coordinates for shot, then fire the shot in the next if statement. 
+	//This is so that the shots don't rotate after being fired.
+	if(p->active == 1){
+		p->active = 2;
+		p->pos.x = ship.pos.x + SHIP_HEIGHT * -sin(ship.phi);
+		p->pos.y = ship.pos.y + SHIP_HEIGHT *  cos(ship.phi);
+		p->dx = 4 * -sin(ship.phi) + ship.dx;
+		p->dy = 4 * cos(ship.phi) + ship.dy;
+		
+		
+	}
+	else if(p->active == 2){
+		p->pos.x += p->dx;
+		p->pos.y += p->dy;
+		
+		printf("\nPhoton Coords: %f, %f",p->pos.x,p->pos.y);
+		fflush(stdout);
+		
+		if(screenWrap(&p->pos,0) == 1)
+			p->active = 0;
+	}
+		
+	
 }
 double randfrom(double min, double max) 
 {
@@ -213,25 +246,28 @@ double randfrom(double min, double max)
 void
 myTimer(int value)
 {
+    
     if(activeAsteroids < MAX_ASTEROIDS){
-    	for(int i =0; i < MAX_ASTEROIDS; i++ && activeAsteroids++){
+    	for(int i =0; i < MAX_ASTEROIDS || activeAsteroids > MAX_ASTEROIDS; i++, activeAsteroids++){
     		initAsteroid(&asteroids[i], (rand()%2)*xMax, myRandom(0,yMax), myRandom(2,5));
     	}
-    	
-    	//activeAsteroids++;
     }
     /*
      *	timer callback function
      */
+	
+	//Handles how the ship moves
 	shipMovement();
     
+    //Handles individual asteroid movement
     for(int i=0; i < MAX_ASTEROIDS && activeAsteroids > 0; i++){
     	if(asteroids[i].active){
     		asteroidMovement(&asteroids[i]);
     	}
     }
     
-    for(int i=0; i < MAX_PHOTONS && activePhotons > 0; i++){
+    //Handles individual photon movement
+    for(int i=0; i < MAX_PHOTONS; i++){
     	if(photons[i].active){
     		photonMovement(&photons[i]);
     	}
@@ -257,6 +293,18 @@ myKey(unsigned char key, int x, int y)
      *	keyboard callback function; add code here for firing the laser,
      *	starting and/or pausing the game, etc.
      */
+     switch(key){
+     	case ' ':
+     		for(int i=0;i<MAX_PHOTONS;i++){
+     			if(!photons[i].active){
+     				photons[i].active = 1;
+     				printf("\nI'VE ACTIVATED!\n");
+     				break;
+     			}
+     		}
+     		break;
+     
+     }
 }
 
 void
@@ -378,9 +426,10 @@ void
 drawShip(Ship *s)
 {    
     //glLoadIdentity();
+    glPushMatrix();
     myTranslate2D(s->pos.x,s->pos.y);
     myRotate2D(s->phi);
-    glPushMatrix();
+    
     
     glBegin(GL_LINE_LOOP);
     
@@ -399,17 +448,26 @@ drawShip(Ship *s)
 void
 drawPhoton(Photon *p)
 {
-	
+	glPushMatrix();
+	//myTranslate2D(p->pos.x,p->pos.y);
+	glBegin(GL_LINE_LOOP);
+		glVertex2f(p->pos.x+0.5, p->pos.y+0.5);
+		glVertex2f(p->pos.x+0.5, p->pos.y-0.5);
+		glVertex2f(p->pos.x-0.5, p->pos.y-0.5);
+		glVertex2f(p->pos.x-0.5,p->pos.y+0.5);
+	glEnd();
+	glPopMatrix();
 }
 
 void
 drawAsteroid(Asteroid *a){
 	
 	//a->active = 1;
+	glPushMatrix();
 	myTranslate2D(a->pos.x,a->pos.y);
 	myRotate2D(a->phi);
 	
-	glPushMatrix();
+	
 	
 	glBegin(GL_LINE_LOOP);
 		for(int i=0;i < a->nVertices;i++){
@@ -421,20 +479,26 @@ drawAsteroid(Asteroid *a){
 		
 }
 
-void screenWrap(Coords* pos){
-	if(pos->x < xMax-xMax) {
-    	pos->x += xMax;
+int screenWrap(Coords* pos, int border){
+	int wrapped = 0;
+	if(pos->x < -border) {
+    	pos->x = xMax+border;
+    	wrapped = 1;
 	} 
-	else if(pos->x > xMax) {
-		pos->x += -xMax;
+	else if(pos->x > xMax+border) {
+		pos->x = -border;
+		wrapped = 1;
 	}
 
-	if(pos->y < yMax-yMax) {
-		pos->y += yMax;
+	if(pos->y < -border) {
+		pos->y = yMax+border;
+		wrapped = 1;
 	}
-	else if (pos->y > yMax){
-		pos->y += -yMax;
+	else if (pos->y > yMax+border){
+		pos->y = -border;
+		wrapped = 1;
 	}
+	return wrapped;
 }
 
 /* -- helper function ------------------------------------------------------- */
