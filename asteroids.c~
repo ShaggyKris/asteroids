@@ -10,6 +10,8 @@
 #include <time.h>
 #include <math.h>
 #include <GL/glut.h>
+#include <FTGL/ftgl.h>
+
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -26,6 +28,7 @@
 #define MAX_PHOTONS	8
 #define MAX_ASTEROIDS	8
 #define MAX_VERTICES	16
+
 
 
 #define drawCircle() glCallList(circle)
@@ -73,7 +76,7 @@ typedef struct {
 
 typedef struct {
 	int	active, nVertices;
-	double	phi, dx, dy, dphi;
+	double	phi, dx, dy, dphi, diameter;
 	Coords	coords[MAX_VERTICES],pos;
 } Asteroid;
 
@@ -111,7 +114,7 @@ static Coords ship_coords[] = {
 		    {0,-SHIP_HEIGHT/2},
 		    {SHIP_WIDTH,-SHIP_HEIGHT}
      	};
-
+//static FTGLfont *font;
 /* -- main ------------------------------------------------------------------ */
 
 int
@@ -138,6 +141,10 @@ main(int argc, char *argv[])
     
     glutMainLoop();
     
+/*    font = ftglCreatePixmapFont("/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf");*/
+/*    if(!font)*/
+/*    	return -1;*/
+    
     return 0;
 }
 
@@ -161,39 +168,43 @@ myDisplay()
 
     for (i=0; i<MAX_PHOTONS; i++){
     	if (photons[i].active){
-            drawPhoton(&photons[i]);
-    		
+            drawPhoton(&photons[i]);    		
     	}
-    }
-    
+    }   
     
 
     for (i=0; i<MAX_ASTEROIDS; i++){
     	if (asteroids[i].active)
             drawAsteroid(&asteroids[i]);
     }
-    
+    /* Set the font size and render a small text. */
+/*	ftglSetFontFaceSize(font, 72, 72);*/
+/*	ftglRenderFont(font, "Hello World!", FTGL_RENDER_ALL);*/
+	
     glutSwapBuffers();
 }
 void shipMovement(){
 	/* advance the ship */
 	
-	double velocity, da;
-	// Input and set rotation.
+	double velocity, acceleration;
+	// Input and set rotation as well as forward/backward acceleration
 	ship.phi += (left*SHIP_MAX_ROTATION) - (right*SHIP_MAX_ROTATION);
-	da = (up * SHIP_ACCELERATION) - (down*SHIP_ACCELERATION);
+	acceleration = (up * SHIP_ACCELERATION) - (down*SHIP_ACCELERATION);
 	// Update dx and dy
-	ship.dx += da * -sin(ship.phi);
-	ship.dy += da * cos(ship.phi);
+	ship.dx += acceleration * -sin(ship.phi);
+	ship.dy += acceleration * cos(ship.phi);
 	velocity = sqrt(ship.dx*ship.dx + ship.dy*ship.dy);
 	
-	
+	//Slow down ship if reached max speed, otherwise advance ship based on dx,dy
 	if( velocity > SHIP_MAX_SPEED)
 	{
 		ship.dx = (ship.dx / velocity) / SHIP_MAX_SPEED;
 		ship.dy = (ship.dy / velocity) / SHIP_MAX_SPEED;
 	}
-	else
+	else if(!down&&!up){
+		
+	}
+	else 
 	{
 		ship.pos.x += ship.dx;
 		ship.pos.y += ship.dy;
@@ -202,10 +213,13 @@ void shipMovement(){
 }
 
 void asteroidMovement(Asteroid* a){
+	//Simple movement
 	a->pos.x += a->dx;
 	a->pos.y += a->dy;
+	//Set that spin
 	a->phi += a->dphi;
-	screenWrap(&a->pos,2);
+	//Do some screenwrapping
+	screenWrap(&a->pos,&a->diameter);
 }
 
 void photonMovement(Photon* p){
@@ -219,9 +233,7 @@ void photonMovement(Photon* p){
 		p->pos.x = ship.pos.x + SHIP_HEIGHT * -sin(ship.phi);
 		p->pos.y = ship.pos.y + SHIP_HEIGHT *  cos(ship.phi);
 		p->dx = 4 * -sin(ship.phi) + ship.dx;
-		p->dy = 4 * cos(ship.phi) + ship.dy;
-		
-		
+		p->dy = 4 * cos(ship.phi) + ship.dy;		
 	}
 	else if(p->active == 2){
 		p->pos.x += p->dx;
@@ -230,17 +242,12 @@ void photonMovement(Photon* p){
 		printf("\nPhoton Coords: %f, %f",p->pos.x,p->pos.y);
 		fflush(stdout);
 		
+		//If screenwrap has occurred (through return val), destroy photon object
 		if(screenWrap(&p->pos,0) == 1)
 			p->active = 0;
 	}
 		
 	
-}
-double randfrom(double min, double max) 
-{
-    double range = (max - min); 
-    double div = RAND_MAX / range;
-    return min + (rand() / div);
 }
 
 void
@@ -249,7 +256,7 @@ myTimer(int value)
     
     if(activeAsteroids < MAX_ASTEROIDS){
     	for(int i =0; i < MAX_ASTEROIDS || activeAsteroids > MAX_ASTEROIDS; i++, activeAsteroids++){
-    		initAsteroid(&asteroids[i], (rand()%2)*xMax, myRandom(0,yMax), myRandom(2,5));
+    		initAsteroid(&asteroids[i], (rand()%2)*xMax, myRandom(0,yMax), myRandom(0.5,3));
     	}
     }
     /*
@@ -294,6 +301,7 @@ myKey(unsigned char key, int x, int y)
      *	starting and/or pausing the game, etc.
      */
      switch(key){
+     	//Press space to fire photon
      	case ' ':
      		for(int i=0;i<MAX_PHOTONS;i++){
      			if(!photons[i].active){
@@ -302,8 +310,7 @@ myKey(unsigned char key, int x, int y)
      				break;
      			}
      		}
-     		break;
-     
+     		break;     
      }
 }
 
@@ -383,9 +390,6 @@ init()
     
     ship.pos.x = 50;
 	ship.pos.y = 50;
-	//printf("\nInit x: %f",ship.x);
-	//printf("\nInit y: %f",ship.y);
-      
 }
 
 void
@@ -413,12 +417,12 @@ initAsteroid(
     a->nVertices = 6+rand()%(MAX_VERTICES-6);
     for (i=0; i<a->nVertices; i++)
     {
-	theta = 2.0*M_PI*i/a->nVertices;
-	r = size*myRandom(2.0, 3.0);
-	a->coords[i].x = -r*sin(theta);
-	a->coords[i].y = r*cos(theta);
+		theta = 2.0*M_PI*i/a->nVertices;
+		r = size*myRandom(2.0, 3.0);
+		a->coords[i].x = -r*sin(theta);
+		a->coords[i].y = r*cos(theta);
     }
-    
+    a->diameter = r;
     a->active = 1;
 }
 
