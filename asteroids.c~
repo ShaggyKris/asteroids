@@ -290,7 +290,7 @@ void photonMovement(Photon* p){
 		p->active = 2;
 		p->pos.x = ship.pos.x + SHIP_HEIGHT * -sin(ship.phi);
 		p->pos.y = ship.pos.y + SHIP_HEIGHT *  cos(ship.phi);
-			p->dx = 4 * -sin(ship.phi) + ship.dx;
+		p->dx = 4 * -sin(ship.phi) + ship.dx;
 		p->dy = 4 * cos(ship.phi) + ship.dy;		
 	}
 	else if(p->active == 2){

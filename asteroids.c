@@ -299,6 +299,9 @@ void photonMovement(Photon* p){
 		
 /*		printf("\nPhoton Coords: %f, %f",p->pos.x,p->pos.y);*/
 /*		fflush(stdout);*/
+
+
+		//Checks if the bullet collides with an asteroid. NOT WORKING JUST NOW!!!!!!!
 		for(int i = 0; i < MAX_ASTEROIDS; i++){
 			
 			
