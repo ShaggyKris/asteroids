@@ -305,11 +305,13 @@ void photonMovement(Photon* p){
 		for(int i = 0; i < MAX_ASTEROIDS; i++){
 			
 			
-			if(checkCollision(&asteroids[i].pos,&p->pos,asteroids[i].r,0.5) == 1){
+			if(checkCollision(&asteroids[i].pos,&p->pos,asteroids[i].r,1) == 1){
 				isHit(1);
-				asteroids[i].active = p->active = 0;
-				activeAsteroids--;
+				asteroids[i].active = 0;
+				p->active = 0;
+				//activeAsteroids--;    //THIS SEEMS TO BE THE PROBLEM LINE!!!!
 				activePhotons--;
+				break;
 			}
 			
 		}

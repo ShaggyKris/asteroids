@@ -299,14 +299,19 @@ void photonMovement(Photon* p){
 		
 /*		printf("\nPhoton Coords: %f, %f",p->pos.x,p->pos.y);*/
 /*		fflush(stdout);*/
+
+
+		//Checks if the bullet collides with an asteroid. NOT WORKING JUST NOW!!!!!!!
 		for(int i = 0; i < MAX_ASTEROIDS; i++){
 			
 			
-			if(checkCollision(&asteroids[i].pos,&p->pos,asteroids[i].r,0.5) == 1){
+			if(checkCollision(&asteroids[i].pos,&p->pos,asteroids[i].r,1) == 1){
 				isHit(1);
-				asteroids[i].active = p->active = 0;
-				activeAsteroids--;
+				asteroids[i].active = 0;
+				p->active = 0;
+				//activeAsteroids--;
 				activePhotons--;
+				break;
 			}
 			
 		}
