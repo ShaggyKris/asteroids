@@ -305,11 +305,11 @@ void photonMovement(Photon* p){
 		for(int i = 0; i < MAX_ASTEROIDS; i++){
 			
 			
-			if(checkCollision(&asteroids[i].pos,&p->pos,asteroids[i].r,1) == 1){
+			if(checkCollision(&asteroids[i].pos,&p->pos,asteroids[i].r,1) && asteroids[i].active){
 				isHit(1);
 				asteroids[i].active = 0;
 				p->active = 0;
-				//activeAsteroids--;
+				activeAsteroids--;    //THIS SEEMS TO BE THE PROBLEM LINE!!!!
 				activePhotons--;
 				break;
 			}
@@ -332,10 +332,13 @@ myTimer(int value)
 {
     
     if(activeAsteroids < MAX_ASTEROIDS){
-    	for(int i =0; i < MAX_ASTEROIDS || activeAsteroids > MAX_ASTEROIDS; i++, activeAsteroids++){
-    		initAsteroid(&asteroids[i], (rand()%2)*xMax, myRandom(0,yMax), myRandom(0.5,3));
-    		asteroids[i].r = asteroids[i].diameter/2.0;
-    	}
+    	initAsteroid(&asteroids[activeAsteroids], (rand()%2)*xMax, myRandom(0,yMax), myRandom(0.5,3));
+    	
+		asteroids[activeAsteroids].r = asteroids[activeAsteroids++;].diameter/2.0+1;
+    	activeAsteroids++;
+/*    	for(int i =0; i < MAX_ASTEROIDS; i++, activeAsteroids++){*/
+/*    		*/
+/*    	}*/
     }
     /*
      *	timer callback function
