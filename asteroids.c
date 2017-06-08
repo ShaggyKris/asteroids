@@ -39,6 +39,8 @@
 #define SHIP_MAX_ROTATION 0.3
 #define SHIP_ACCELERATION 0.05
 
+#define INVULNERABLE_TIME 3	
+
 /* -- display list for drawing a circle ------------------------------------- */
 
 static GLuint	circle;
@@ -109,7 +111,7 @@ static void asteroidMovement(Asteroid* a);
 static void photonMovement(Photon* p);
 
 
-static double	myRandom(double min, double max);
+static double myRandom(double min, double max);
 static int screenWrap(Coords* pos, int border);
 static void drawText(char *text);
 
@@ -132,7 +134,7 @@ static Coords ship_coords[] = {
 static int lives = 3;
 static int invulnerable = 0;
 static char *scoreString = "Score :";
-
+static time_t timeHit; 
  
 //static FTGLfont *font;
 /* -- main ------------------------------------------------------------------ */
@@ -153,9 +155,10 @@ main(int argc, char *argv[])
     glutSpecialUpFunc(keyRelease);
     glutReshapeFunc(myReshape);
     glutTimerFunc(33, myTimer, 0);
+    drawText(scoreString);
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	drawText(scoreString);
+	
     init();
     
     glutMainLoop();
@@ -204,8 +207,11 @@ myDisplay()
 }
 
 
-//Does simple circle-circle point detection. Lazy. So lazy.
+
 int checkCollision(Coords *a, Coords *b, double ar, double br){
+
+/*	Does simple circle-circle point detection. Lazy. So lazy.*/
+	
 	double dist = sqrt(((a->x-b->x)*(a->x-b->x))+((a->y-b->y)*(a->y-b->y)));
 	double sum = ar + br;
 	if(dist < sum)
@@ -217,15 +223,20 @@ void shipMovement(){
 	/* advance the ship */
 	
 	double velocity, acceleration;
-	// Input and set rotation as well as forward/backward acceleration
+	
+/*		Input and set rotation as well as forward/backward acceleration*/
+	
 	ship.phi += (left*SHIP_MAX_ROTATION) - (right*SHIP_MAX_ROTATION);
 	acceleration = (up * SHIP_ACCELERATION) - (down*SHIP_ACCELERATION);
-	// Update dx and dy
+	
+/*		Update dx and dy*/
+	
 	ship.dx += acceleration * -sin(ship.phi);
 	ship.dy += acceleration * cos(ship.phi);
 	velocity = sqrt(ship.dx*ship.dx + ship.dy*ship.dy);
 	
-	//Slow down ship if reached max speed, otherwise advance ship based on dx,dy
+/*		Slow down ship if reached max speed, otherwise advance ship based on dx,dy*/
+	
 	if( velocity > SHIP_MAX_SPEED)
 	{
 		ship.dx = (ship.dx / velocity) / SHIP_MAX_SPEED;
@@ -251,23 +262,35 @@ void isHit(int type){
 			fflush(stdout);
 			break; 
 		default:
-			//invulnerable = 1;
-			printf("\nShip is invulnerable");
+			invulnerable = 1;
+			printf("\nShip has been hit and now is invulnerable for %d seconds\n", INVULNERABLE_TIME);
 			fflush(stdout);
 			break;
 	}	
 }
 
 void asteroidMovement(Asteroid* a){
-	//Simple movement
+/*		Simple movement*/
+	
 	a->pos.x += a->dx;
 	a->pos.y += a->dy;
-	//Set that spin
+	
+/*		Set that spin*/
+	
 	a->phi += a->dphi;
-	//Do some screenwrapping
+	
+/*		Do some screenwrapping*/
+	
 	screenWrap(&a->pos,a->diameter);
-	if(checkCollision(&a->pos,&ship.pos,a->r,SHIP_HEIGHT)){}
-		//isHit(0);
+	
+/*		Check if the asteroid has hit the ship*/
+	
+	if( checkCollision(&a->pos,&ship.pos,a->r, SHIP_HEIGHT+1) && !invulnerable){
+		timeHit = time(NULL);
+		printf("Time hit: %d", (int)timeHit);
+		isHit(0);
+	}
+		
 	
 }
 
@@ -275,8 +298,9 @@ void photonMovement(Photon* p){
 	//printf("\nBefore if, Photon Coords: %f, %f",p->pos.x,p->pos.y);
 	//fflush(stdout);
 	
-	//Set initial coordinates for shot, then fire the shot in the next if statement. 
-	//This is so that the shots don't rotate after being fired.
+/*		Set initial coordinates for shot, then fire the shot in the next if statement. */
+/*		This is so that the shots don't rotate after being fired.*/
+	
 	if(p->active == 1){
 		activePhotons++;
 		p->active = 2;
@@ -319,6 +343,22 @@ void photonMovement(Photon* p){
 	
 }
 
+
+void resetInvulnerability(){
+	
+/*		Resets vulnerability of ship after allotted time INVULNERABLE_TIME*/
+	
+/*	printf("\nhey I do stuff at %d\n", timeSpent);*/
+/*	fflush(stdout);*/
+	
+	if(((int)(time(NULL) - timeHit)) >= INVULNERABLE_TIME){
+		invulnerable = 0;
+/*		printf("\nShip no longer invulnerable\n");*/
+/*		fflush(stdout);*/
+	}
+
+}
+
 void
 myTimer(int value)
 
@@ -331,12 +371,6 @@ myTimer(int value)
 			asteroids[i].r = asteroids[i].diameter/2.0+1;
 		}
 	}
-    
-/*    if(activeAsteroids < MAX_ASTEROIDS){*/
-/*    	*/
-/*    	activeAsteroids++;*/
-/*    	*/
-/*    }*/
     /*
      *	timer callback function
      */
@@ -357,6 +391,8 @@ myTimer(int value)
     		photonMovement(&photons[i]);
     	}
     }
+    
+    resetInvulnerability();
     
     //sprintf(score.scoreChar, "Score: %d", score.score);
     //strcat(scoreString, score.scoreChar);
@@ -395,6 +431,8 @@ myKey(unsigned char key, int x, int y)
      		break;     
      }
 }
+
+
 
 void
 keyPress(int key, int x, int y)
@@ -512,7 +550,6 @@ initAsteroid(
 void
 drawShip(Ship *s)
 {    
-    //glLoadIdentity();
     glPushMatrix();
     myTranslate2D(s->pos.x,s->pos.y);
     myRotate2D(s->phi);
@@ -536,25 +573,24 @@ void
 drawPhoton(Photon *p)
 {
 	glPushMatrix();
-	//myTranslate2D(p->pos.x,p->pos.y);
+	
 	glBegin(GL_LINE_LOOP);
 		glVertex2f(p->pos.x+0.5, p->pos.y+0.5);
 		glVertex2f(p->pos.x+0.5, p->pos.y-0.5);
 		glVertex2f(p->pos.x-0.5, p->pos.y-0.5);
 		glVertex2f(p->pos.x-0.5,p->pos.y+0.5);
 	glEnd();
+	
 	glPopMatrix();
 }
 
 void
 drawAsteroid(Asteroid *a){
-	
-	//a->active = 1;
+
 	glPushMatrix();
+	
 	myTranslate2D(a->pos.x,a->pos.y);
-	myRotate2D(a->phi);
-	
-	
+	myRotate2D(a->phi);	
 	
 	glBegin(GL_LINE_LOOP);
 		for(int i=0;i < a->nVertices;i++){
@@ -567,6 +603,12 @@ drawAsteroid(Asteroid *a){
 }
 
 int screenWrap(Coords* pos, int border){
+	
+/*		Checks if position is within a specified border of the */
+/*		screen (for visual fidelity and smooth transitions),*/
+/*		and then sets their position to the opposing side of the screen */
+/*		(taking into account the border)*/
+	
 	int wrapped = 0;
 	if(pos->x < -border) {
     	pos->x = xMax+border;
@@ -588,9 +630,15 @@ int screenWrap(Coords* pos, int border){
 	return wrapped;
 }
 void drawText(char *text){
-	glRasterPos2i( xMax-xMax+10, yMax-yMax+10);
-	for(int i = 0; i < strlen(text); i++)
-		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, text[i]);
+	
+		glColor3i(1,1,1);
+		glRasterPos2i( 50, 90);
+		for(int i = 0; i < strlen(text); i++){
+			glutBitmapCharacter(GLUT_BITMAP_9_BY_15, text[i]);
+		
+		}
+		printf("\nText is %s\n",text);
+		fflush(stdout);		
 
 }
 /* -- helper function ------------------------------------------------------- */
