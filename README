@@ -1,0 +1,3 @@
+Compile line:
+
+gcc -o asteroids asteroids.c -lGL -lGLU -lglut -Wall -lm -lftgl -I/usr/include/FTGL -I/usr/include/freetype2
