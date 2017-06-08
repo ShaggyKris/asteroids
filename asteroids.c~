@@ -40,6 +40,7 @@
 #define SHIP_ACCELERATION 0.05
 
 #define INVULNERABLE_TIME 3	
+#define HIT_SCORE_REDUCTION 500
 
 /* -- display list for drawing a circle ------------------------------------- */
 
@@ -84,10 +85,10 @@ typedef struct {
 	Coords	coords[MAX_VERTICES],pos;
 } Asteroid;
 
-typedef struct {
-	int score;
-	char *scoreChar;
-} Score;
+/*typedef struct {*/
+/*	int score;*/
+/*	char *scoreChar;*/
+/*} Score;*/
 
 /* -- function prototypes --------------------------------------------------- */
 
@@ -113,7 +114,7 @@ static void photonMovement(Photon* p);
 
 static double myRandom(double min, double max);
 static int screenWrap(Coords* pos, int border);
-static void drawText(char *text);
+static void drawText(double x, double y, char *text);
 
 /* -- global variables ------------------------------------------------------ */
 
@@ -122,7 +123,7 @@ static double	xMax, yMax;
 static Ship	ship;
 static Photon	photons[MAX_PHOTONS];
 static Asteroid	asteroids[MAX_ASTEROIDS];
-static Score score;
+
 static int activePhotons = 0;
 /*Vector to draw ship*/
 static Coords ship_coords[] = {
@@ -133,8 +134,9 @@ static Coords ship_coords[] = {
      	};
 static int lives = 3;
 static int invulnerable = 0;
-static char *scoreString = "Score :";
-static time_t timeHit; 
+static time_t timeHit, startTime; 
+static int score, hitDeduction = 0;
+static char elapsedTime[9];
  
 //static FTGLfont *font;
 /* -- main ------------------------------------------------------------------ */
@@ -155,9 +157,11 @@ main(int argc, char *argv[])
     glutSpecialUpFunc(keyRelease);
     glutReshapeFunc(myReshape);
     glutTimerFunc(33, myTimer, 0);
-    drawText(scoreString);
+    
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	
+	
 	
     init();
     
@@ -181,6 +185,7 @@ myDisplay()
      */
 
     int	i;
+    char scoreString[64];
 
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -203,10 +208,41 @@ myDisplay()
 /*	ftglSetFontFaceSize(font, 72, 72);*/
 /*	ftglRenderFont(font, "Hello World!", FTGL_RENDER_ALL);*/
 	
+	//sprintf(scoreString, "Score : %d", score.score);
+    //strcat(score.Char, scoreString);
+    sprintf(scoreString,"Score : %6d",score);
+    //strcat(scoreString,score.scoreChar);	
+	
+	drawText(0, yMax-5, scoreString);
+	
+	drawtext(xMax - 10, yMax-5, elapsedTime);
+	
+	if(invulnerable){
+		drawText(50,50, "YOU GOT HIT");
+		if(score > 100 && !hitDeduction){
+			score -= HIT_SCORE_REDUCTION;
+			hitDeduction = 1;
+		}
+		else if(!hitDeduction){
+			score = 0;
+			hitDeduction = 1;
+		}
+	}
+	
     glutSwapBuffers();
 }
 
+void displayElapsedTime(){
+	time_t current_time;
+	struct tm * time_info;
+	//char timeString[9];  // space for "HH:MM:SS\0"
 
+	time(&current_time);
+	time_info = localtime(&current_time);
+
+	strftime(elapsedTime, sizeof(elapsedTime), "%H:%M:%S", time_info);
+	
+}
 
 int checkCollision(Coords *a, Coords *b, double ar, double br){
 
@@ -289,6 +325,7 @@ void asteroidMovement(Asteroid* a){
 		timeHit = time(NULL);
 		printf("Time hit: %d", (int)timeHit);
 		isHit(0);
+		
 	}
 		
 	
@@ -325,7 +362,7 @@ void photonMovement(Photon* p){
 				isHit(1);
 				asteroids[i].active = 0;
 				p->active = 0;
-				    
+				score += asteroids[i].r*100; 
 				activePhotons--;
 				break;
 			}
@@ -344,7 +381,7 @@ void photonMovement(Photon* p){
 }
 
 
-void resetInvulnerability(){
+int resetInvulnerability(){
 	
 /*		Resets vulnerability of ship after allotted time INVULNERABLE_TIME*/
 	
@@ -353,6 +390,7 @@ void resetInvulnerability(){
 	
 	if(((int)(time(NULL) - timeHit)) >= INVULNERABLE_TIME){
 		invulnerable = 0;
+		hitDeduction = 0;
 /*		printf("\nShip no longer invulnerable\n");*/
 /*		fflush(stdout);*/
 	}
@@ -394,9 +432,6 @@ myTimer(int value)
     
     resetInvulnerability();
     
-    //sprintf(score.scoreChar, "Score: %d", score.score);
-    //strcat(scoreString, score.scoreChar);
-    //displayText("Yo");
 	
 	
     /* advance photon laser shots, eliminating those that have gone past
@@ -510,7 +545,7 @@ init()
     
     ship.pos.x = 50;
 	ship.pos.y = 50;
-	score.score = 0;
+	score = 0;
 }
 
 void
@@ -629,16 +664,16 @@ int screenWrap(Coords* pos, int border){
 	}
 	return wrapped;
 }
-void drawText(char *text){
+void drawText(double x, double y, char *text){
 	
-		glColor3i(1,1,1);
-		glRasterPos2i( 50, 90);
+		//glColor3i(1,1,1);
+		glRasterPos2i( x, y);
 		for(int i = 0; i < strlen(text); i++){
 			glutBitmapCharacter(GLUT_BITMAP_9_BY_15, text[i]);
 		
 		}
-		printf("\nText is %s\n",text);
-		fflush(stdout);		
+/*		printf("\nText is %s\n",text);*/
+/*		fflush(stdout);		*/
 
 }
 /* -- helper function ------------------------------------------------------- */
