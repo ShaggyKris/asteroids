@@ -82,6 +82,10 @@ typedef struct {
 	Coords	coords[MAX_VERTICES],pos;
 } Asteroid;
 
+typedef struct {
+	int score;
+	char *scoreChar;
+} Score;
 
 /* -- function prototypes --------------------------------------------------- */
 
@@ -98,8 +102,16 @@ static void	drawShip(Ship *s);
 static void	drawPhoton(Photon *p);
 static void	drawAsteroid(Asteroid *a);
 
+static int checkCollision(Coords *a, Coords *b, double ar, double br);
+static void shipMovement();
+static void isHit(int type);
+static void asteroidMovement(Asteroid* a);
+static void photonMovement(Photon* p);
+
+
 static double	myRandom(double min, double max);
 static int screenWrap(Coords* pos, int border);
+static void drawText(char *text);
 
 /* -- global variables ------------------------------------------------------ */
 
@@ -108,7 +120,8 @@ static double	xMax, yMax;
 static Ship	ship;
 static Photon	photons[MAX_PHOTONS];
 static Asteroid	asteroids[MAX_ASTEROIDS];
-static int activeAsteroids = 0, activePhotons = 0;
+static Score score;
+static int activePhotons = 0;
 /*Vector to draw ship*/
 static Coords ship_coords[] = {
 			{0, SHIP_HEIGHT},              
@@ -118,10 +131,12 @@ static Coords ship_coords[] = {
      	};
 static int lives = 3;
 static int invulnerable = 0;
+static char *scoreString = "Score :";
+
+ 
 //static FTGLfont *font;
 /* -- main ------------------------------------------------------------------ */
 
-int
 main(int argc, char *argv[])
 {
     srand((unsigned int) time(NULL));
@@ -140,7 +155,7 @@ main(int argc, char *argv[])
     glutTimerFunc(33, myTimer, 0);
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+	drawText(scoreString);
     init();
     
     glutMainLoop();
@@ -188,6 +203,8 @@ myDisplay()
     glutSwapBuffers();
 }
 
+
+//Does simple circle-circle point detection. Lazy. So lazy.
 int checkCollision(Coords *a, Coords *b, double ar, double br){
 	double dist = sqrt(((a->x-b->x)*(a->x-b->x))+((a->y-b->y)*(a->y-b->y)));
 	double sum = ar + br;
@@ -223,9 +240,7 @@ void shipMovement(){
 		ship.pos.y += ship.dy;
 	}
 	screenWrap(&ship.pos,SHIP_HEIGHT);
-/*	for(int i = 0; i < activeAsteroids; i++){*/
-/*		*/
-/*	}*/
+
 }
 
 void isHit(int type){
@@ -240,9 +255,7 @@ void isHit(int type){
 			printf("\nShip is invulnerable");
 			fflush(stdout);
 			break;
-	}
-	
-		
+	}	
 }
 
 void asteroidMovement(Asteroid* a){
@@ -253,30 +266,9 @@ void asteroidMovement(Asteroid* a){
 	a->phi += a->dphi;
 	//Do some screenwrapping
 	screenWrap(&a->pos,a->diameter);
-	if(checkCollision(&a->pos,&ship.pos,a->r,SHIP_HEIGHT))
+	if(checkCollision(&a->pos,&ship.pos,a->r,SHIP_HEIGHT)){}
 		//isHit(0);
 	
-	
-	if(activePhotons > 0){
-		
-	}
-/*	for(int i = 0; i < MAX_PHOTONS; i++){*/
-/*		printf("\nChecking photons\n");*/
-/*		fflush(stdout);	*/
-/*		if(&photons[i].active){*/
-/*			printf("\nPhoton %d active\n",i);*/
-/*			fflush(stdout);*/
-/*			if(checkCollision(&a->pos,&photons[i].pos,a->r,1)){*/
-/*				isHit(1);*/
-/*				a->active = 0;*/
-/*				photons[i].active = 0;*/
-/*				activeAsteroids--;*/
-/*				activePhotons--;*/
-/*				break;*/
-/*			}*/
-/*		}*/
-/*			*/
-/*	}*/
 }
 
 void photonMovement(Photon* p){
@@ -301,7 +293,7 @@ void photonMovement(Photon* p){
 /*		fflush(stdout);*/
 
 
-		//Checks if the bullet collides with an asteroid. NOT WORKING JUST NOW!!!!!!!
+		//Checks if the bullet collides with an asteroid. 
 		for(int i = 0; i < MAX_ASTEROIDS; i++){
 			
 			
@@ -309,7 +301,7 @@ void photonMovement(Photon* p){
 				isHit(1);
 				asteroids[i].active = 0;
 				p->active = 0;
-				activeAsteroids--;    //THIS SEEMS TO BE THE PROBLEM LINE!!!!
+				    
 				activePhotons--;
 				break;
 			}
@@ -329,17 +321,22 @@ void photonMovement(Photon* p){
 
 void
 myTimer(int value)
+
 {
     
-    if(activeAsteroids < MAX_ASTEROIDS){
-    	initAsteroid(&asteroids[activeAsteroids], (rand()%2)*xMax, myRandom(0,yMax), myRandom(0.5,3));
-    	
-		asteroids[activeAsteroids].r = asteroids[activeAsteroids].diameter/2.0+1;
-    	activeAsteroids++;
-/*    	for(int i =0; i < MAX_ASTEROIDS; i++, activeAsteroids++){*/
-/*    		*/
-/*    	}*/
-    }
+    for(int i =0; i < MAX_ASTEROIDS; i++){
+    	if(!asteroids[i].active){
+			initAsteroid(&asteroids[i], (rand()%2)*xMax, myRandom(0,yMax), myRandom(0.5,3));
+			
+			asteroids[i].r = asteroids[i].diameter/2.0+1;
+		}
+	}
+    
+/*    if(activeAsteroids < MAX_ASTEROIDS){*/
+/*    	*/
+/*    	activeAsteroids++;*/
+/*    	*/
+/*    }*/
     /*
      *	timer callback function
      */
@@ -348,7 +345,7 @@ myTimer(int value)
 	shipMovement();
     
     //Handles individual asteroid movement
-    for(int i=0; i < MAX_ASTEROIDS && activeAsteroids > 0; i++){
+    for(int i=0; i < MAX_ASTEROIDS; i++){
     	if(asteroids[i].active){
     		asteroidMovement(&asteroids[i]);
     	}
@@ -360,6 +357,10 @@ myTimer(int value)
     		photonMovement(&photons[i]);
     	}
     }
+    
+    //sprintf(score.scoreChar, "Score: %d", score.score);
+    //strcat(scoreString, score.scoreChar);
+    //displayText("Yo");
 	
 	
     /* advance photon laser shots, eliminating those that have gone past
@@ -471,6 +472,7 @@ init()
     
     ship.pos.x = 50;
 	ship.pos.y = 50;
+	score.score = 0;
 }
 
 void
@@ -585,7 +587,12 @@ int screenWrap(Coords* pos, int border){
 	}
 	return wrapped;
 }
+void drawText(char *text){
+	glRasterPos2i( xMax-xMax+10, yMax-yMax+10);
+	for(int i = 0; i < strlen(text); i++)
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, text[i]);
 
+}
 /* -- helper function ------------------------------------------------------- */
 
 double
