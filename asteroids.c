@@ -65,7 +65,8 @@ typedef struct Coords {
 
 typedef struct {
 	Coords	pos; 
-	double phi, dx, dy;
+	double phi, dx, dy,r;
+	
 } Ship;
 
 typedef struct {
@@ -76,7 +77,8 @@ typedef struct {
 
 typedef struct {
 	int	active, nVertices;
-	double	phi, dx, dy, dphi, diameter;
+	double	phi, dx, dy, dphi, diameter, r;
+	//double r = diameter/2;
 	Coords	coords[MAX_VERTICES],pos;
 } Asteroid;
 
@@ -114,6 +116,8 @@ static Coords ship_coords[] = {
 		    {0,-SHIP_HEIGHT/2},
 		    {SHIP_WIDTH,-SHIP_HEIGHT}
      	};
+static int lives = 3;
+static int invulnerable = 0;
 //static FTGLfont *font;
 /* -- main ------------------------------------------------------------------ */
 
@@ -183,6 +187,15 @@ myDisplay()
 	
     glutSwapBuffers();
 }
+
+int checkCollision(Coords *a, Coords *b, double ar, double br){
+	double dist = sqrt(((a->x-b->x)*(a->x-b->x))+((a->y-b->y)*(a->y-b->y)));
+	double sum = ar + br;
+	if(dist < sum)
+		return 1;
+	return 0;
+}
+
 void shipMovement(){
 	/* advance the ship */
 	
@@ -201,15 +214,35 @@ void shipMovement(){
 		ship.dx = (ship.dx / velocity) / SHIP_MAX_SPEED;
 		ship.dy = (ship.dy / velocity) / SHIP_MAX_SPEED;
 	}
-	else if(!down&&!up){
-		
-	}
+/*	else if(down||!up){*/
+/*		*/
+/*	}*/
 	else 
 	{
 		ship.pos.x += ship.dx;
 		ship.pos.y += ship.dy;
 	}
 	screenWrap(&ship.pos,SHIP_HEIGHT);
+/*	for(int i = 0; i < activeAsteroids; i++){*/
+/*		*/
+/*	}*/
+}
+
+void isHit(int type){
+	switch(type){
+		case 1:
+			//invulnerable = 1;
+			printf("\nPhoton hit\n");
+			fflush(stdout);
+			break; 
+		default:
+			//invulnerable = 1;
+			printf("\nShip is invulnerable");
+			fflush(stdout);
+			break;
+	}
+	
+		
 }
 
 void asteroidMovement(Asteroid* a){
@@ -220,6 +253,30 @@ void asteroidMovement(Asteroid* a){
 	a->phi += a->dphi;
 	//Do some screenwrapping
 	screenWrap(&a->pos,a->diameter);
+	if(checkCollision(&a->pos,&ship.pos,a->r,SHIP_HEIGHT))
+		//isHit(0);
+	
+	
+	if(activePhotons > 0){
+		
+	}
+/*	for(int i = 0; i < MAX_PHOTONS; i++){*/
+/*		printf("\nChecking photons\n");*/
+/*		fflush(stdout);	*/
+/*		if(&photons[i].active){*/
+/*			printf("\nPhoton %d active\n",i);*/
+/*			fflush(stdout);*/
+/*			if(checkCollision(&a->pos,&photons[i].pos,a->r,1)){*/
+/*				isHit(1);*/
+/*				a->active = 0;*/
+/*				photons[i].active = 0;*/
+/*				activeAsteroids--;*/
+/*				activePhotons--;*/
+/*				break;*/
+/*			}*/
+/*		}*/
+/*			*/
+/*	}*/
 }
 
 void photonMovement(Photon* p){
@@ -229,6 +286,7 @@ void photonMovement(Photon* p){
 	//Set initial coordinates for shot, then fire the shot in the next if statement. 
 	//This is so that the shots don't rotate after being fired.
 	if(p->active == 1){
+		activePhotons++;
 		p->active = 2;
 		p->pos.x = ship.pos.x + SHIP_HEIGHT * -sin(ship.phi);
 		p->pos.y = ship.pos.y + SHIP_HEIGHT *  cos(ship.phi);
@@ -239,13 +297,27 @@ void photonMovement(Photon* p){
 		p->pos.x += p->dx;
 		p->pos.y += p->dy;
 		
-		printf("\nPhoton Coords: %f, %f",p->pos.x,p->pos.y);
-		fflush(stdout);
-		
+/*		printf("\nPhoton Coords: %f, %f",p->pos.x,p->pos.y);*/
+/*		fflush(stdout);*/
+		for(int i = 0; i < MAX_ASTEROIDS; i++){
+			
+			
+			if(checkCollision(&asteroids[i].pos,&p->pos,asteroids[i].r,0.5) == 1){
+				isHit(1);
+				asteroids[i].active = p->active = 0;
+				activeAsteroids--;
+				activePhotons--;
+			}
+			
+		}
 		//If screenwrap has occurred (through return val), destroy photon object
-		if(screenWrap(&p->pos,0) == 1)
+		if(screenWrap(&p->pos,0) == 1){
 			p->active = 0;
+			activePhotons--;
+		}
+		
 	}
+	
 		
 	
 }
@@ -257,6 +329,7 @@ myTimer(int value)
     if(activeAsteroids < MAX_ASTEROIDS){
     	for(int i =0; i < MAX_ASTEROIDS || activeAsteroids > MAX_ASTEROIDS; i++, activeAsteroids++){
     		initAsteroid(&asteroids[i], (rand()%2)*xMax, myRandom(0,yMax), myRandom(0.5,3));
+    		asteroids[i].r = asteroids[i].diameter/2.0;
     	}
     }
     /*
@@ -517,3 +590,8 @@ myRandom(double min, double max)
 	
 	return d;
 }
+
+/*int lineCollision(Coords *a, Coords *b, Coords *c, Coords *d){*/
+/*	*/
+
+/*}*/
