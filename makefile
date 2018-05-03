@@ -12,7 +12,7 @@ OBJECTS = $(patsubst %.c, .objectFiles/%.o, $(wildcard *.c))
 HEADERS = $(wildcard *.h)
 
 .objectFiles/%.o: %.c $(HEADERS)
-	mkdir -p objectFiles
+	mkdir -p .objectFiles
 	$(CC) $(CFLAGS) -c -w $< -o $@
 
 .PRECIOUS: $(TARGET) $(OBJECTS)
